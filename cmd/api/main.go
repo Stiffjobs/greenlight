@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"net/http"
 	"os"
 	"time"
 
 	"greenlight.alexedwards.net/internal/data"
 	"greenlight.alexedwards.net/internal/jsonlog"
+	"greenlight.alexedwards.net/internal/mailer"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -36,12 +36,20 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -62,6 +70,12 @@ func main() {
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
+
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 25, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "8d6ed8236f7342", "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "d86eb59ef48d33", "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.stiffjobs.net>", "SMTP sender")
 
 	flag.Parse()
 
@@ -98,10 +112,8 @@ func main() {
 		config: cfg,
 		models: data.NewModels(db),
 		logger: logger,
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/healthcheck", app.healthcheckHandler)
 
 	err = app.serve()
 	if err != nil {
