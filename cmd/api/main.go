@@ -16,9 +16,12 @@ import (
 	"greenlight.stiffjobs/internal/data"
 	"greenlight.stiffjobs/internal/jsonlog"
 	"greenlight.stiffjobs/internal/mailer"
+	"greenlight.stiffjobs/internal/vcs"
 )
 
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 type config struct {
 	port int
