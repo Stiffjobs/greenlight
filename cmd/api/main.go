@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,24 +61,20 @@ type application struct {
 
 func main() {
 	var cfg config
-
-	flag.IntVar(&cfg.port, "port", 4000, "API sever port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://greenlight:pa55word@localhost/greenlight?sslmode=disable", "PostgreSQL DSN")
-	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
-	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
-	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
-
-	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
-	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum busrt")
-	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
-
-	flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
-	flag.IntVar(&cfg.smtp.port, "smtp-port", 25, "SMTP port")
-	flag.StringVar(&cfg.smtp.username, "smtp-username", "49222e9f77db44", "SMTP username")
-	flag.StringVar(&cfg.smtp.password, "smtp-password", "ed4f7d025374d0", "SMTP password")
-	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <charleschen0306@gmail.com>", "SMTP sender")
+	cfg.port, _ = strconv.Atoi(os.Getenv("PORT"))
+	cfg.env = os.Getenv("ENV")
+	cfg.db.dsn = os.Getenv("DB_DSN")
+	cfg.db.maxOpenConns, _ = strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNS"))
+	cfg.db.maxIdleConns, _ = strconv.Atoi(os.Getenv("DB_MAX_IDLE_CONNS"))
+	cfg.db.maxIdleTime = os.Getenv("DB_MAX_IDLE_TIME")
+	cfg.limiter.rps, _ = strconv.ParseFloat(os.Getenv("LIMITER_RPS"), 64)
+	cfg.limiter.burst, _ = strconv.Atoi(os.Getenv("LIMITER_BURST"))
+	cfg.limiter.enabled, _ = strconv.ParseBool(os.Getenv("LIMITER_ENABLED"))
+	cfg.smtp.host = os.Getenv("SMTP_HOST")
+	cfg.smtp.port, _ = strconv.Atoi(os.Getenv("SMTP_PORT"))
+	cfg.smtp.username = os.Getenv("SMTP_USERNAME")
+	cfg.smtp.password = os.Getenv("SMTP_PASSWORD")
+	cfg.smtp.sender = os.Getenv("SMTP_SENDER")
 
 	flag.Func("cors-trusted-origins", "Trusted CORS origins (space seperated)", func(s string) error {
 		cfg.cors.trustedOrigins = strings.Fields(s)
